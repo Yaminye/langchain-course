@@ -1,0 +1,8 @@
+# Secrets and sensitive files
+.env
+*.key
+*.pem
+*.crt
+
+# Virtual Environment
+.venv/
