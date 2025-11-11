@@ -1,30 +1,39 @@
-import os
-
 from dotenv import load_dotenv
-
-load_dotenv()  # take environment variables from .env.
-
-from langchain import hub
-from langchain.agents import AgentExecutor
-from langchain.agents.react.agent import create_react_agent
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.tools import tool
+from langchain.agents import create_tool_calling_agent, AgentExecutor
 from langchain_openai import ChatOpenAI
-from langchain_tavily import TavilySearch
+from langchain_community.tools.tavily_search import TavilySearchResults
 
-tools = [TavilySearch()]
-llm = ChatOpenAI(temperature=0, model="gpt-4")
-react_prompt = hub.pull("hwchase17/react")
-agent = create_react_agent(llm = llm, tools=tools, prompt=react_prompt)
-agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
-chain = agent_executor
+load_dotenv()
 
-def main():
-    result = chain.invoke(
-        input={
-            "input": "search for 3 job postings for ai engineer using langchain in the bay area on linkedin and list their details"
-        }
-    )
-    print(result)
+
+@tool
+def multiply(x: float, y: float) -> float:
+    """Multiply 'x' times 'y'."""
+    return x * y
 
 
 if __name__ == "__main__":
-    main()
+    print("Hello Tool Calling")
+
+    prompt = ChatPromptTemplate.from_messages(
+        [
+            ("system", "you're a helpful assistant"),
+            ("human", "{input}"),
+            ("placeholder", "{agent_scratchpad}"),
+        ]
+    )
+
+    tools = [TavilySearchResults(), multiply]
+    llm = ChatOpenAI(model="gpt-4-turbo")
+
+    agent = create_tool_calling_agent(llm, tools, prompt)
+    agent_executor = AgentExecutor(agent=agent, tools=tools)
+
+    res = agent_executor.invoke(
+        {
+            "input": "what is the weather in dubai right now? compare it with San Fransisco, output should in in celsious",
+        }
+    )
+    print(res)
